@@ -1,0 +1,208 @@
+<!-- SolarKit · fragment SPA — injecté dans #app par $router.go('index') -->
+<div class="space-y-8">
+
+  <section class="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-white shadow-lg">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-solar-400">Modèle · Planning d'équipe</p>
+    <h1 class="mt-2 text-3xl font-black leading-tight">La semaine de l'équipe, en un écran.</h1>
+    <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
+      Les créneaux viennent de la table <code class="rounded bg-white/10 px-1">shifts</code> ;
+      le regroupement par jour et la détection des chevauchements sont calculés côté client.
+    </p>
+    <div id="kpis" class="mt-6 grid gap-3 sm:grid-cols-4"></div>
+  </section>
+
+  <!-- Navigation de semaine : aucun changement d'URL -->
+  <section class="space-y-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <h2 class="text-lg font-bold">Semaine</h2>
+      <span id="week-label" class="sk-badge bg-slate-100 text-slate-600"></span>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="prev" class="sk-btn-ghost">← Précédente</button>
+        <button id="today" class="sk-btn-ghost">Cette semaine</button>
+        <button id="next" class="sk-btn-ghost">Suivante →</button>
+      </div>
+    </div>
+
+    <div id="conflicts"></div>
+    <div id="week" class="grid gap-3 md:grid-cols-7"></div>
+  </section>
+
+  <div id="employees"></div>
+  <div id="shifts"></div>
+
+</div>
+
+<script>
+  const root = $page.root;
+  const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  const TONES = {
+    amber:   'border-amber-300 bg-amber-50 text-amber-900',
+    sky:     'border-sky-300 bg-sky-50 text-sky-900',
+    emerald: 'border-emerald-300 bg-emerald-50 text-emerald-900',
+    violet:  'border-violet-300 bg-violet-50 text-violet-900',
+    rose:    'border-rose-300 bg-rose-50 text-rose-900',
+    slate:   'border-slate-300 bg-slate-50 text-slate-800'
+  };
+
+  let team = [];
+  let shifts = [];
+  let monday = mondayOf(new Date());
+
+  const employeesCrud = $ui.crud('#employees', 'employees', {
+    title: 'Équipe',
+    columns: ['name', 'role', 'email', 'phone', 'weekly_hours', 'active'],
+    onChange: () => load()
+  });
+
+  const shiftsCrud = $ui.crud('#shifts', 'shifts', {
+    title: 'Tous les créneaux',
+    columns: ['employee_id', 'day', 'start_at', 'end_at', 'site', 'kind'],
+    order: 'day desc',
+    onChange: () => load()
+  });
+
+  /* ---------- Dates ---------- */
+  function mondayOf(date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const shift = (d.getDay() + 6) % 7; // lundi = 0
+    d.setDate(d.getDate() - shift);
+    return d;
+  }
+  function iso(date) {
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return date.getFullYear() + '-' + m + '-' + d;
+  }
+  function addDays(date, n) {
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+  function minutes(time) {
+    const parts = String(time || '00:00').split(':');
+    return Number(parts[0] || 0) * 60 + Number(parts[1] || 0);
+  }
+
+  /* ---------- Chargement ---------- */
+  async function load() {
+    const results = await Promise.all([
+      $db.list('employees', { order: 'name asc', limit: 500 }),
+      $db.list('shifts', { order: 'day asc', limit: 1000 })
+    ]);
+    team = results[0];
+    shifts = results[1];
+    render();
+  }
+
+  function employee(id) {
+    return team.filter((e) => e.id === Number(id))[0] || null;
+  }
+
+  function render() {
+    const from = iso(monday);
+    const to = iso(addDays(monday, 6));
+    const week = shifts.filter((s) => s.day >= from && s.day <= to);
+
+    root.querySelector('#week-label').textContent =
+      'du ' + monday.toLocaleDateString('fr-FR') + ' au ' + addDays(monday, 6).toLocaleDateString('fr-FR');
+
+    renderKpis(week);
+    renderConflicts(week);
+    renderWeek(week);
+  }
+
+  function renderKpis(week) {
+    const active = team.filter((e) => Number(e.active));
+    const hours = week.reduce((sum, s) => {
+      if (s.kind === 'Congé') return sum;
+      return sum + Math.max(0, minutes(s.end_at) - minutes(s.start_at)) / 60;
+    }, 0);
+    const offDays = week.filter((s) => s.kind === 'Congé').length;
+    const kpi = (label, value, tone) =>
+      '<div class="rounded-xl bg-white/5 px-4 py-3 ring-1 ring-white/10">' +
+      '<p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">' + label + '</p>' +
+      '<p class="mt-0.5 text-2xl font-black ' + (tone || 'text-white') + '">' + value + '</p></div>';
+
+    root.querySelector('#kpis').innerHTML =
+      kpi('Équipe active', active.length) +
+      kpi('Créneaux (semaine)', week.length) +
+      kpi('Heures planifiées', hours.toFixed(1) + ' h') +
+      kpi('Absences', offDays, offDays ? 'text-amber-400' : 'text-emerald-400');
+  }
+
+  /* Chevauchements : deux créneaux du même employé le même jour */
+  function renderConflicts(week) {
+    const conflicts = [];
+    const byKey = {};
+    week.forEach((s) => {
+      const key = s.employee_id + '|' + s.day;
+      (byKey[key] = byKey[key] || []).push(s);
+    });
+    Object.keys(byKey).forEach((key) => {
+      const list = byKey[key].slice().sort((a, b) => minutes(a.start_at) - minutes(b.start_at));
+      for (let i = 1; i < list.length; i++) {
+        if (minutes(list[i].start_at) < minutes(list[i - 1].end_at)) {
+          conflicts.push([list[i - 1], list[i]]);
+        }
+      }
+    });
+
+    const host = root.querySelector('#conflicts');
+    if (!conflicts.length) {
+      host.innerHTML = '<div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">' +
+        'Aucun chevauchement détecté sur la semaine.</div>';
+      return;
+    }
+    host.innerHTML = '<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">' +
+      '<p class="font-bold">' + conflicts.length + ' chevauchement(s) détecté(s)</p><ul class="mt-1 list-disc space-y-0.5 pl-5">' +
+      conflicts.map((pair) => {
+        const e = employee(pair[0].employee_id);
+        return '<li>' + $ui.esc(e ? e.name : 'Employé #' + pair[0].employee_id) + ' · ' +
+          $ui.esc(pair[0].day) + ' : ' + $ui.esc(pair[0].start_at + '–' + pair[0].end_at) +
+          ' (' + $ui.esc(pair[0].site || '—') + ') et ' +
+          $ui.esc(pair[1].start_at + '–' + pair[1].end_at) + ' (' + $ui.esc(pair[1].site || '—') + ')</li>';
+      }).join('') + '</ul></div>';
+  }
+
+  function renderWeek(week) {
+    const todayIso = iso(new Date());
+    root.querySelector('#week').innerHTML = DAYS.map((label, index) => {
+      const date = addDays(monday, index);
+      const key = iso(date);
+      const list = week.filter((s) => s.day === key)
+        .sort((a, b) => minutes(a.start_at) - minutes(b.start_at));
+      const isToday = key === todayIso;
+
+      const cards = list.length
+        ? list.map((s) => {
+            const e = employee(s.employee_id);
+            const tone = TONES[(e && e.color) || 'slate'] || TONES.slate;
+            const off = s.kind === 'Congé';
+            return '<div class="rounded-lg border px-2.5 py-2 text-xs ' + (off ? TONES.slate + ' opacity-70' : tone) + '">' +
+              '<p class="font-bold leading-tight">' + $ui.esc(e ? e.name : 'Employé #' + s.employee_id) + '</p>' +
+              '<p class="mt-0.5 font-mono text-[11px] opacity-80">' +
+              (off ? 'journée' : $ui.esc(s.start_at + ' – ' + s.end_at)) + '</p>' +
+              '<p class="mt-0.5 truncate opacity-80" title="' + $ui.esc(s.site || '') + '">' +
+              $ui.esc(s.kind) + (s.site && s.site !== '—' ? ' · ' + $ui.esc(s.site) : '') + '</p>' +
+              '</div>';
+          }).join('')
+        : '<p class="py-4 text-center text-xs text-slate-300">—</p>';
+
+      return '<div class="rounded-xl border bg-white p-3 shadow-sm ' +
+        (isToday ? 'border-solar-400 ring-2 ring-solar-200' : 'border-slate-200') + '">' +
+        '<div class="mb-2 flex items-baseline justify-between">' +
+          '<p class="text-xs font-bold uppercase tracking-wide ' + (isToday ? 'text-solar-600' : 'text-slate-500') + '">' +
+          label + '</p>' +
+          '<p class="text-[11px] text-slate-400">' + date.getDate() + '/' + (date.getMonth() + 1) + '</p>' +
+        '</div>' +
+        '<div class="space-y-2">' + cards + '</div></div>';
+    }).join('');
+  }
+
+  /* ---------- Navigation ---------- */
+  root.querySelector('#prev').onclick = () => { monday = addDays(monday, -7); render(); };
+  root.querySelector('#next').onclick = () => { monday = addDays(monday, 7); render(); };
+  root.querySelector('#today').onclick = () => { monday = mondayOf(new Date()); render(); };
+
+  load().catch((e) => $ui.toast(e.message, 'error'));
+</script>

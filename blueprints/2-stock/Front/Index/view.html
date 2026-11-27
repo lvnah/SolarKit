@@ -1,0 +1,216 @@
+<!-- SolarKit · fragment SPA — injecté dans #app par $router.go('index') -->
+<div class="space-y-8">
+
+  <section class="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-white shadow-lg">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-solar-400">Modèle · Gestion de Stock</p>
+    <h1 class="mt-2 text-3xl font-black leading-tight">Stock, seuils et mouvements.</h1>
+    <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
+      Chaque entrée ou sortie met à jour le stock du produit <em>et</em> écrit une ligne dans le journal,
+      en deux appels <code class="rounded bg-white/10 px-1">$db</code> côté client.
+    </p>
+    <div id="kpis" class="mt-6 grid gap-3 sm:grid-cols-4"></div>
+  </section>
+
+  <!-- Alertes : stock au niveau du seuil ou en dessous -->
+  <section id="alerts" class="space-y-3"></section>
+
+  <!-- Catalogue : lecture, mouvement rapide, CRUD -->
+  <section class="space-y-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <h2 class="text-lg font-bold">Catalogue</h2>
+      <span id="cat-count" class="sk-badge bg-slate-100 text-slate-600">0</span>
+      <div class="ml-auto flex items-center gap-2">
+        <input id="q" type="search" placeholder="Référence, désignation…" class="sk-input w-56">
+        <select id="cat" class="sk-input w-40"></select>
+      </div>
+    </div>
+    <div id="catalogue" class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm"></div>
+  </section>
+
+  <!-- Panneaux CRUD complets générés depuis le schéma -->
+  <div id="products"></div>
+  <div id="movements"></div>
+
+</div>
+
+<script>
+  const root = $page.root;
+  const canWrite = ($db.schema('products') || {}).canWrite === true;
+  let products = [];
+  let query = '';
+  let category = '';
+
+  const productsCrud = $ui.crud('#products', 'products', {
+    title: 'Fiches produits (CRUD complet)',
+    columns: ['sku', 'name', 'category', 'stock', 'threshold', 'price', 'active'],
+    onChange: () => load(),
+    rowClass: (r) => (Number(r.stock) <= Number(r.threshold) ? 'bg-rose-50/70' : '')
+  });
+
+  const movementsCrud = $ui.crud('#movements', 'movements', {
+    title: 'Journal des mouvements',
+    columns: ['product_id', 'kind', 'quantity', 'reason', 'moved_at'],
+    empty: 'Aucun mouvement enregistré.'
+  });
+
+  /* ---------- Chargement et rendu ---------- */
+  async function load() {
+    products = await $db.list('products', { order: 'name asc', limit: 500 });
+    renderKpis();
+    renderAlerts();
+    renderCatalogue();
+    renderCategories();
+  }
+
+  function renderKpis() {
+    const active = products.filter((p) => Number(p.active));
+    const alerts = active.filter((p) => Number(p.stock) <= Number(p.threshold));
+    const units = active.reduce((s, p) => s + Number(p.stock || 0), 0);
+    const value = active.reduce((s, p) => s + Number(p.stock || 0) * Number(p.price || 0), 0);
+    const kpi = (label, value, tone) =>
+      '<div class="rounded-xl bg-white/5 px-4 py-3 ring-1 ring-white/10">' +
+      '<p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">' + label + '</p>' +
+      '<p class="mt-0.5 text-2xl font-black ' + (tone || 'text-white') + '">' + value + '</p></div>';
+
+    root.querySelector('#kpis').innerHTML =
+      kpi('Références actives', active.length) +
+      kpi('Unités en stock', units) +
+      kpi('Valeur du stock', value.toFixed(2) + ' €') +
+      kpi('Alertes', alerts.length, alerts.length ? 'text-rose-400' : 'text-emerald-400');
+  }
+
+  function renderAlerts() {
+    const alerts = products
+      .filter((p) => Number(p.active) && Number(p.stock) <= Number(p.threshold))
+      .sort((a, b) => (Number(a.stock) - Number(a.threshold)) - (Number(b.stock) - Number(b.threshold)));
+
+    if (!alerts.length) {
+      root.querySelector('#alerts').innerHTML =
+        '<div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">' +
+        'Aucune alerte : tous les produits actifs sont au-dessus de leur seuil.</div>';
+      return;
+    }
+
+    root.querySelector('#alerts').innerHTML =
+      '<h2 class="text-lg font-bold text-rose-700">Alertes de réapprovisionnement (' + alerts.length + ')</h2>' +
+      '<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">' +
+      alerts.map((p) => {
+        const out = Number(p.stock) <= 0;
+        return '<div class="rounded-xl border px-4 py-3 ' +
+          (out ? 'border-rose-300 bg-rose-50' : 'border-amber-300 bg-amber-50') + '">' +
+          '<div class="flex items-start justify-between gap-2">' +
+            '<div><p class="text-sm font-bold text-slate-900">' + $ui.esc(p.name) + '</p>' +
+            '<p class="text-xs text-slate-500">' + $ui.esc(p.sku) + ' · ' + $ui.esc(p.supplier || 'sans fournisseur') + '</p></div>' +
+            '<span class="sk-badge ' + (out ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white') + '">' +
+            (out ? 'Rupture' : 'Bas') + '</span>' +
+          '</div>' +
+          '<p class="mt-2 text-xs text-slate-600">Stock <strong>' + Number(p.stock) +
+          '</strong> / seuil <strong>' + Number(p.threshold) + '</strong></p>' +
+          '</div>';
+      }).join('') + '</div>';
+  }
+
+  function renderCategories() {
+    const select = root.querySelector('#cat');
+    const current = select.value;
+    const cats = Object.keys(products.reduce((acc, p) => (acc[p.category || 'Divers'] = 1, acc), {})).sort();
+    select.innerHTML = '<option value="">Toutes catégories</option>' +
+      cats.map((c) => '<option value="' + $ui.esc(c) + '">' + $ui.esc(c) + '</option>').join('');
+    select.value = current || '';
+  }
+
+  function renderCatalogue() {
+    const q = query.toLowerCase();
+    const rows = products.filter((p) => {
+      const okCat = !category || p.category === category;
+      const okQ = !q || (String(p.sku) + ' ' + String(p.name) + ' ' + String(p.supplier || '')).toLowerCase().indexOf(q) >= 0;
+      return okCat && okQ;
+    });
+
+    root.querySelector('#cat-count').textContent = rows.length;
+
+    if (!rows.length) {
+      root.querySelector('#catalogue').innerHTML =
+        '<p class="px-4 py-10 text-center text-sm text-slate-400">Aucun produit ne correspond au filtre.</p>';
+      return;
+    }
+
+    root.querySelector('#catalogue').innerHTML =
+      '<table class="min-w-full divide-y divide-slate-200"><thead>' +
+      '<tr class="border-b border-slate-200 bg-slate-50">' +
+        '<th class="sk-th">Référence</th><th class="sk-th">Désignation</th><th class="sk-th">Catégorie</th>' +
+        '<th class="sk-th text-right">Stock</th><th class="sk-th text-right">Seuil</th>' +
+        '<th class="sk-th text-right">Prix</th><th class="sk-th">État</th>' +
+        (canWrite ? '<th class="sk-th text-right">Mouvement</th>' : '') +
+      '</tr></thead><tbody>' +
+      rows.map((p) => {
+        const stock = Number(p.stock);
+        const low = stock <= Number(p.threshold);
+        const state = !Number(p.active)
+          ? '<span class="sk-badge bg-slate-200 text-slate-600">Déréférencé</span>'
+          : stock <= 0
+            ? '<span class="sk-badge bg-rose-600 text-white">Rupture</span>'
+            : low
+              ? '<span class="sk-badge bg-amber-500 text-white">Stock bas</span>'
+              : '<span class="sk-badge bg-emerald-100 text-emerald-700">OK</span>';
+        const actions = canWrite
+          ? '<td class="sk-td text-right">' +
+            '<button data-move="' + p.id + '" data-sign="1" class="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100">+1</button> ' +
+            '<button data-move="' + p.id + '" data-sign="-1" class="rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100">-1</button>' +
+            '</td>'
+          : '';
+        return '<tr class="border-b border-slate-100 last:border-0 ' + (low && Number(p.active) ? 'bg-rose-50/50' : 'hover:bg-slate-50/70') + '">' +
+          '<td class="sk-td font-mono text-xs">' + $ui.esc(p.sku) + '</td>' +
+          '<td class="sk-td font-medium text-slate-900">' + $ui.esc(p.name) + '</td>' +
+          '<td class="sk-td">' + $ui.esc(p.category) + '</td>' +
+          '<td class="sk-td text-right font-bold ' + (low ? 'text-rose-600' : '') + '">' + stock + '</td>' +
+          '<td class="sk-td text-right text-slate-400">' + Number(p.threshold) + '</td>' +
+          '<td class="sk-td text-right">' + Number(p.price || 0).toFixed(2) + ' €</td>' +
+          '<td class="sk-td">' + state + '</td>' + actions + '</tr>';
+      }).join('') + '</tbody></table>';
+
+    $ui.$$('[data-move]', root.querySelector('#catalogue')).forEach((b) => {
+      b.onclick = () => move(Number(b.getAttribute('data-move')), Number(b.getAttribute('data-sign')));
+    });
+  }
+
+  /* ---------- Mouvement rapide : stock + journal ---------- */
+  async function move(productId, sign) {
+    const product = products.filter((p) => p.id === productId)[0];
+    if (!product) return;
+    const next = Number(product.stock) + sign;
+    if (next < 0) {
+      $ui.toast('Stock déjà à zéro pour ' + product.sku + '.', 'warn');
+      return;
+    }
+    try {
+      await $db.update('products', productId, { stock: next });
+      await $db.create('movements', {
+        product_id: productId,
+        kind: sign > 0 ? 'Entrée' : 'Sortie',
+        quantity: Math.abs(sign),
+        reason: 'Mouvement rapide depuis l\'accueil',
+        moved_at: new Date().toISOString().slice(0, 10)
+      });
+      $ui.toast(product.sku + ' : stock ' + next + '.', 'ok');
+      await movementsCrud.refresh();
+      await productsCrud.refresh(); // déclenche onChange -> load()
+    } catch (e) {
+      $ui.toast(e.message, 'error');
+    }
+  }
+
+  /* ---------- Filtres ---------- */
+  let timer = null;
+  root.querySelector('#q').oninput = (ev) => {
+    query = ev.target.value.trim();
+    clearTimeout(timer);
+    timer = setTimeout(renderCatalogue, 180);
+  };
+  root.querySelector('#cat').onchange = (ev) => {
+    category = ev.target.value;
+    renderCatalogue();
+  };
+
+  load().catch((e) => $ui.toast(e.message, 'error'));
+</script>

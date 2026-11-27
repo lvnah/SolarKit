@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SolarKit</title>
+  <meta name="description" content="SolarKit — micro-framework full-stack sans Node.js ni compilation.">
+
+  <!-- Tailwind CSS via CDN : aucune compilation, aucun node_modules. -->
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { solar: { 50: '#fff8ed', 100: '#ffefd4', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309' } },
+          fontFamily: { sans: ['ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .sk-card  { @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm; }
+      .sk-btn   { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-solar-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-solar-600 focus:outline-none focus:ring-2 focus:ring-solar-300 disabled:cursor-not-allowed disabled:opacity-50; }
+      .sk-btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50; }
+      .sk-btn-danger { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100; }
+      .sk-input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-solar-500 focus:outline-none focus:ring-2 focus:ring-solar-100; }
+      .sk-badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+      .sk-th    { @apply whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
+      .sk-td    { @apply whitespace-nowrap px-3 py-2 text-sm text-slate-700; }
+    }
+  </style>
+</head>
+
+<body class="flex min-h-full flex-col bg-slate-50 text-slate-900 antialiased">
+
+  <!-- En-tête : le routeur réinjecte #nav à chaque changement d'état -->
+  <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+      <button data-go="index" class="flex items-center gap-2 text-left">
+        <span class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-solar-400 to-solar-600 text-lg font-black text-white shadow-sm">S</span>
+        <span>
+          <span id="brand" class="block text-sm font-bold leading-tight">SolarKit</span>
+          <span class="block text-[11px] leading-tight text-slate-400">HTML · JS · PHP · SQLite</span>
+        </span>
+      </button>
+      <nav id="nav" class="ml-auto flex items-center gap-1"></nav>
+    </div>
+  </header>
+
+  <!-- Conteneur SPA : les fragments de Front/*/view.html sont injectés ici -->
+  <main id="app" class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+    <div class="flex items-center justify-center gap-3 py-24 text-slate-400">
+      <span class="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-solar-500"></span>
+      Chargement de SolarKit…
+    </div>
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-slate-400">
+      <span>SolarKit — 0 Node.js, 0 compilation, 0 dépendance.</span>
+      <span>Session PHP · SQLite <code class="rounded bg-slate-100 px-1 py-0.5">Back/data.db</code></span>
+    </div>
+  </footer>
+
+  <!-- Pile de notifications utilisée par $ui.toast() -->
+  <div id="toasts" class="pointer-events-none fixed bottom-4 right-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2"></div>
+
+  <script src="core.js"></script>
+</body>
+</html>

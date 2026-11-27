@@ -1,0 +1,66 @@
+<!-- SolarKit · fragment SPA — injecté dans #app par $router.go('index') -->
+<div class="space-y-8">
+
+  <section class="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-white shadow-lg">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-solar-400">Modèle · Base CRUD</p>
+    <h1 class="mt-2 text-3xl font-black leading-tight">Un back-end complet, zéro build.</h1>
+    <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
+      Les tables ci-dessous sont déclarées dans <code class="rounded bg-white/10 px-1">Back/schema.json</code>.
+      <code class="rounded bg-white/10 px-1">api.php</code> a créé <code class="rounded bg-white/10 px-1">data.db</code>,
+      inséré les données de démonstration et exposé le CRUD consommé ici par <code class="rounded bg-white/10 px-1">$db</code>.
+    </p>
+    <div id="hero-actions" class="mt-5 flex flex-wrap gap-3"></div>
+  </section>
+
+  <!-- Onglets : deux panneaux CRUD générés automatiquement -->
+  <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
+    <button data-tab="notes" class="tab sk-btn-ghost">Notes</button>
+    <button data-tab="contacts" class="tab sk-btn-ghost">Contacts</button>
+  </div>
+
+  <div id="panel-notes"></div>
+  <div id="panel-contacts" class="hidden"></div>
+
+</div>
+
+<script>
+  const root = $page.root;
+
+  /* Bandeau d'action selon l'état de connexion */
+  root.querySelector('#hero-actions').innerHTML = $auth.isLogged()
+    ? '<button data-go="admin" class="sk-btn">Ouvrir l\'administration</button>' +
+      '<a href="Back/visualdata.php" target="_blank" rel="noopener" class="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">Explorer data.db ↗</a>'
+    : '<button data-go="login" class="sk-btn">Se connecter pour écrire</button>' +
+      '<span class="self-center text-xs text-slate-400">Lecture publique · écriture réservée aux comptes</span>';
+
+  /* Deux panneaux CRUD auto-générés depuis le schéma */
+  const panels = {
+    notes: $ui.crud('#panel-notes', 'notes', {
+      title: 'Notes',
+      columns: ['title', 'category', 'priority', 'due_date', 'done'],
+      empty: 'Aucune note. Cliquez sur « + Nouveau ».',
+      rowClass: (row) => Number(row.done) ? 'opacity-60' : (Number(row.priority) === 1 ? 'bg-amber-50/60' : '')
+    }),
+    contacts: $ui.crud('#panel-contacts', 'contacts', {
+      title: 'Contacts',
+      columns: ['name', 'company', 'email', 'phone'],
+      empty: 'Aucun contact enregistré.'
+    })
+  };
+
+  /* Onglets (l'URL ne change jamais : tout est injecté dans #app) */
+  function selectTab(name) {
+    $ui.$$('.tab', root).forEach((b) => {
+      const on = b.getAttribute('data-tab') === name;
+      b.className = 'tab ' + (on ? 'sk-btn' : 'sk-btn-ghost');
+    });
+    root.querySelector('#panel-notes').classList.toggle('hidden', name !== 'notes');
+    root.querySelector('#panel-contacts').classList.toggle('hidden', name !== 'contacts');
+    panels[name].refresh();
+  }
+
+  $ui.$$('.tab', root).forEach((b) => {
+    b.onclick = () => selectTab(b.getAttribute('data-tab'));
+  });
+  selectTab('notes');
+</script>

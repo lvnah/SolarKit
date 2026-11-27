@@ -1,0 +1,28 @@
+{
+  "products": [
+    { "sku": "SOL-001", "name": "Panneau 450 Wc monocristallin", "category": "Panneaux", "stock": 42, "threshold": 10, "price": 139.9, "supplier": "SunLine", "active": 1 },
+    { "sku": "SOL-002", "name": "Panneau 310 Wc polycristallin", "category": "Panneaux", "stock": 4, "threshold": 8, "price": 94.5, "supplier": "SunLine", "active": 1 },
+    { "sku": "OND-110", "name": "Onduleur hybride 5 kW", "category": "Onduleurs", "stock": 7, "threshold": 3, "price": 912, "supplier": "VoltPro", "active": 1 },
+    { "sku": "OND-050", "name": "Micro-onduleur 400 W", "category": "Onduleurs", "stock": 2, "threshold": 6, "price": 128, "supplier": "VoltPro", "active": 1 },
+    { "sku": "BAT-220", "name": "Batterie LiFePO4 5 kWh", "category": "Batteries", "stock": 3, "threshold": 2, "price": 1890, "supplier": "NordCell", "active": 1 },
+    { "sku": "CAB-006", "name": "Câble solaire 6 mm² (couronne 100 m)", "category": "Câblage", "stock": 18, "threshold": 5, "price": 72.4, "supplier": "ElecDis", "active": 1 },
+    { "sku": "CAB-MC4", "name": "Connecteurs MC4 (paire)", "category": "Câblage", "stock": 0, "threshold": 20, "price": 2.3, "supplier": "ElecDis", "active": 1 },
+    { "sku": "FIX-RAI", "name": "Rail alu 2,2 m", "category": "Fixations", "stock": 61, "threshold": 15, "price": 18.9, "supplier": "AluFrame", "active": 1 },
+    { "sku": "FIX-CRO", "name": "Crochet de toiture tuile", "category": "Fixations", "stock": 240, "threshold": 50, "price": 4.15, "supplier": "AluFrame", "active": 1 },
+    { "sku": "DIV-OLD", "name": "Coffret AC 2 départs (fin de série)", "category": "Divers", "stock": 1, "threshold": 0, "price": 64, "supplier": "ElecDis", "active": 0 }
+  ],
+  "movements": [
+    { "product_id": 1, "kind": "Entrée", "quantity": 48, "reason": "Réception commande SunLine #4471", "moved_at": "2026-11-03" },
+    { "product_id": 1, "kind": "Sortie", "quantity": 6, "reason": "Chantier Dupont", "moved_at": "2026-11-12" },
+    { "product_id": 2, "kind": "Sortie", "quantity": 12, "reason": "Chantier Mairie de Vals", "moved_at": "2026-11-14" },
+    { "product_id": 3, "kind": "Entrée", "quantity": 10, "reason": "Réception VoltPro #881", "moved_at": "2026-11-05" },
+    { "product_id": 3, "kind": "Sortie", "quantity": 3, "reason": "Chantier Dupont", "moved_at": "2026-11-12" },
+    { "product_id": 4, "kind": "Sortie", "quantity": 8, "reason": "Chantier Lefèvre", "moved_at": "2026-11-18" },
+    { "product_id": 7, "kind": "Sortie", "quantity": 40, "reason": "Chantier Mairie de Vals", "moved_at": "2026-11-14" },
+    { "product_id": 8, "kind": "Entrée", "quantity": 80, "reason": "Réception AluFrame #203", "moved_at": "2026-11-20" },
+    { "product_id": 5, "kind": "Correction", "quantity": -1, "reason": "Inventaire : casse constatée", "moved_at": "2026-11-21" }
+  ],
+  "_users": [
+    { "username": "magasin", "password": "magasin", "role": "user" }
+  ]
+}
