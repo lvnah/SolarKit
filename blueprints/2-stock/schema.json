@@ -1,0 +1,35 @@
+{
+  "app": {
+    "name": "SolarKit · Gestion de Stock",
+    "description": "Produits, seuils d'alerte et journal des mouvements d'entrée/sortie."
+  },
+  "tables": {
+    "products": {
+      "label": "Produits",
+      "order": "name asc",
+      "access": { "read": "public", "write": "user" },
+      "fields": {
+        "sku":       { "type": "text",   "label": "Référence", "required": true, "hint": "Code interne unique, ex. SOL-001" },
+        "name":      { "type": "text",   "label": "Désignation", "required": true },
+        "category":  { "type": "select", "label": "Catégorie", "options": ["Panneaux", "Onduleurs", "Batteries", "Câblage", "Fixations", "Divers"], "default": "Divers" },
+        "stock":     { "type": "int",    "label": "Stock", "default": 0 },
+        "threshold": { "type": "int",    "label": "Seuil d'alerte", "default": 5, "hint": "Une alerte apparaît dès que le stock descend à ce niveau." },
+        "price":     { "type": "money",  "label": "Prix unitaire", "default": 0 },
+        "supplier":  { "type": "text",   "label": "Fournisseur" },
+        "active":    { "type": "bool",   "label": "Référencé", "default": 1 }
+      }
+    },
+    "movements": {
+      "label": "Mouvements",
+      "order": "id desc",
+      "access": { "read": "public", "write": "user" },
+      "fields": {
+        "product_id": { "type": "ref",    "label": "Produit (id)", "ref": "products", "required": true },
+        "kind":       { "type": "select", "label": "Type", "options": ["Entrée", "Sortie", "Correction"], "default": "Entrée" },
+        "quantity":   { "type": "int",    "label": "Quantité", "required": true },
+        "reason":     { "type": "text",   "label": "Motif" },
+        "moved_at":   { "type": "date",   "label": "Date" }
+      }
+    }
+  }
+}

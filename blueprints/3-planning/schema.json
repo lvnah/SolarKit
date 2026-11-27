@@ -1,0 +1,36 @@
+{
+  "app": {
+    "name": "SolarKit · Planning d'équipe",
+    "description": "Équipe, créneaux horaires et vue semaine avec détection des conflits."
+  },
+  "tables": {
+    "employees": {
+      "label": "Équipe",
+      "order": "name asc",
+      "access": { "read": "public", "write": "user" },
+      "fields": {
+        "name":     { "type": "text",   "label": "Nom", "required": true },
+        "role":     { "type": "select", "label": "Poste", "options": ["Technicien", "Chef d'équipe", "Électricien", "Apprenti", "Bureau"], "default": "Technicien" },
+        "email":    { "type": "email",  "label": "E-mail" },
+        "phone":    { "type": "text",   "label": "Téléphone" },
+        "color":    { "type": "select", "label": "Couleur", "options": ["amber", "sky", "emerald", "violet", "rose", "slate"], "default": "amber" },
+        "weekly_hours": { "type": "int", "label": "Heures/semaine", "default": 35 },
+        "active":   { "type": "bool",   "label": "Dans l'équipe", "default": 1 }
+      }
+    },
+    "shifts": {
+      "label": "Créneaux",
+      "order": "day asc",
+      "access": { "read": "public", "write": "user" },
+      "fields": {
+        "employee_id": { "type": "ref",    "label": "Employé (id)", "ref": "employees", "required": true },
+        "day":         { "type": "date",   "label": "Jour", "required": true },
+        "start_at":    { "type": "time",   "label": "Début", "default": "08:00" },
+        "end_at":      { "type": "time",   "label": "Fin", "default": "17:00" },
+        "site":        { "type": "text",   "label": "Chantier / lieu" },
+        "kind":        { "type": "select", "label": "Type", "options": ["Chantier", "Atelier", "Astreinte", "Congé", "Formation"], "default": "Chantier" },
+        "note":        { "type": "textarea", "label": "Note" }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "employees": [
+    { "name": "Camille Rousseau", "role": "Chef d'équipe", "email": "camille@exemple.fr", "phone": "01 23 45 67 89", "color": "amber", "weekly_hours": 35, "active": 1 },
+    { "name": "Yacine Benali", "role": "Électricien", "email": "y.benali@exemple.fr", "phone": "01 98 76 54 32", "color": "sky", "weekly_hours": 35, "active": 1 },
+    { "name": "Léa Marchand", "role": "Technicien", "email": "lea@exemple.fr", "color": "emerald", "weekly_hours": 35, "active": 1 },
+    { "name": "Tom Vasseur", "role": "Apprenti", "email": "tom@exemple.fr", "color": "violet", "weekly_hours": 28, "active": 1 },
+    { "name": "Nadia Fournier", "role": "Bureau", "email": "nadia@exemple.fr", "color": "rose", "weekly_hours": 35, "active": 1 },
+    { "name": "Marc Delattre", "role": "Technicien", "email": "marc@exemple.fr", "color": "slate", "weekly_hours": 35, "active": 0 }
+  ],
+  "shifts": [
+    { "employee_id": 1, "day": "@monday",    "start_at": "08:00", "end_at": "16:30", "site": "Chantier Dupont", "kind": "Chantier", "note": "Pose 12 panneaux, nacelle réservée." },
+    { "employee_id": 2, "day": "@monday",    "start_at": "08:00", "end_at": "16:30", "site": "Chantier Dupont", "kind": "Chantier" },
+    { "employee_id": 3, "day": "@monday",    "start_at": "09:00", "end_at": "17:00", "site": "Atelier",          "kind": "Atelier", "note": "Préparation des kits de la semaine." },
+    { "employee_id": 4, "day": "@monday",    "start_at": "09:00", "end_at": "17:00", "site": "Atelier",          "kind": "Atelier" },
+    { "employee_id": 5, "day": "@monday",    "start_at": "08:30", "end_at": "16:30", "site": "Bureau",           "kind": "Atelier" },
+
+    { "employee_id": 1, "day": "@monday+1",  "start_at": "07:30", "end_at": "16:00", "site": "Mairie de Vals",   "kind": "Chantier", "note": "Accès par la cour arrière." },
+    { "employee_id": 2, "day": "@monday+1",  "start_at": "07:30", "end_at": "16:00", "site": "Mairie de Vals",   "kind": "Chantier" },
+    { "employee_id": 3, "day": "@monday+1",  "start_at": "08:00", "end_at": "12:00", "site": "SAV Lefèvre",      "kind": "Chantier" },
+    { "employee_id": 4, "day": "@monday+1",  "start_at": "09:00", "end_at": "17:00", "site": "CFA",              "kind": "Formation" },
+    { "employee_id": 5, "day": "@monday+1",  "start_at": "08:30", "end_at": "16:30", "site": "Bureau",           "kind": "Atelier" },
+
+    { "employee_id": 1, "day": "@monday+2",  "start_at": "08:00", "end_at": "17:00", "site": "Mairie de Vals",   "kind": "Chantier" },
+    { "employee_id": 2, "day": "@monday+2",  "start_at": "08:00", "end_at": "17:00", "site": "Mairie de Vals",   "kind": "Chantier" },
+    { "employee_id": 3, "day": "@monday+2",  "start_at": "00:00", "end_at": "23:59", "site": "—",                "kind": "Congé", "note": "Congé posé en septembre." },
+    { "employee_id": 4, "day": "@monday+2",  "start_at": "09:00", "end_at": "17:00", "site": "Atelier",          "kind": "Atelier" },
+
+    { "employee_id": 1, "day": "@monday+3",  "start_at": "08:00", "end_at": "12:00", "site": "Visite technique Morel", "kind": "Chantier" },
+    { "employee_id": 1, "day": "@monday+3",  "start_at": "11:30", "end_at": "17:00", "site": "Chantier Dupont",  "kind": "Chantier", "note": "Chevauchement volontaire : à arbitrer." },
+    { "employee_id": 2, "day": "@monday+3",  "start_at": "08:00", "end_at": "17:00", "site": "Chantier Dupont",  "kind": "Chantier" },
+    { "employee_id": 4, "day": "@monday+3",  "start_at": "09:00", "end_at": "17:00", "site": "Chantier Dupont",  "kind": "Chantier" },
+    { "employee_id": 5, "day": "@monday+3",  "start_at": "08:30", "end_at": "16:30", "site": "Bureau",           "kind": "Atelier" },
+
+    { "employee_id": 1, "day": "@monday+4",  "start_at": "08:00", "end_at": "15:00", "site": "Atelier",          "kind": "Atelier", "note": "Inventaire + débrief semaine." },
+    { "employee_id": 2, "day": "@monday+4",  "start_at": "08:00", "end_at": "15:00", "site": "Atelier",          "kind": "Atelier" },
+    { "employee_id": 3, "day": "@monday+4",  "start_at": "08:00", "end_at": "15:00", "site": "Atelier",          "kind": "Atelier" },
+    { "employee_id": 2, "day": "@monday+5",  "start_at": "09:00", "end_at": "13:00", "site": "Astreinte week-end", "kind": "Astreinte" },
+
+    { "employee_id": 3, "day": "@monday+7",  "start_at": "08:00", "end_at": "17:00", "site": "Chantier Morel",   "kind": "Chantier" },
+    { "employee_id": 1, "day": "@monday+7",  "start_at": "08:00", "end_at": "17:00", "site": "Chantier Morel",   "kind": "Chantier" }
+  ],
+  "_users": [
+    { "username": "planning", "password": "planning", "role": "user" }
+  ]
+}

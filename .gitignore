@@ -1,0 +1,13 @@
+# Base SQLite générée au premier démarrage par Back/api.php
+Back/data.db
+Back/data.db-wal
+Back/data.db-shm
+
+# Sauvegardes créées par ./init.sh --reset
+*.bak
+*.bak-*
+
+# Divers
+.DS_Store
+Thumbs.db
+*.log

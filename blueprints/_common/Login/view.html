@@ -1,0 +1,63 @@
+<!-- SolarKit · fragment SPA — injecté dans #app par $router.go('login') -->
+<div class="mx-auto max-w-md">
+  <div class="sk-card space-y-5">
+    <div class="space-y-1">
+      <h1 class="text-xl font-bold">Connexion</h1>
+      <p class="text-sm text-slate-500">Les sessions sont gérées par PHP, les mots de passe hachés en base.</p>
+    </div>
+
+    <form id="login-form" class="space-y-4">
+      <div class="space-y-1">
+        <label for="u" class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Identifiant</label>
+        <input id="u" name="username" class="sk-input" autocomplete="username" required autofocus>
+      </div>
+      <div class="space-y-1">
+        <label for="p" class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Mot de passe</label>
+        <input id="p" name="password" type="password" class="sk-input" autocomplete="current-password" required>
+      </div>
+
+      <p id="login-error" class="min-h-5 text-sm font-medium text-rose-600"></p>
+
+      <button type="submit" class="sk-btn w-full">Se connecter</button>
+    </form>
+
+    <div class="rounded-lg bg-solar-50 px-4 py-3 text-xs text-solar-700">
+      Compte par défaut : <code class="font-bold">admin</code> / <code class="font-bold">admin</code>
+      — pensez à le changer depuis l'écran d'administration.
+    </div>
+  </div>
+
+  <p class="mt-4 text-center text-sm">
+    <button data-go="index" class="text-slate-500 underline hover:text-slate-800">Retour à l'accueil</button>
+  </p>
+</div>
+
+<script>
+  const form = $page.root.querySelector('#login-form');
+  const error = $page.root.querySelector('#login-error');
+
+  if ($auth.isLogged()) {
+    $ui.toast('Déjà connecté en tant que ' + $auth.user.username + '.', 'info');
+  }
+
+  form.onsubmit = async (ev) => {
+    ev.preventDefault();
+    error.textContent = '';
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Connexion…';
+    try {
+      const user = await $auth.login(form.username.value, form.password.value);
+      $ui.toast('Bienvenue ' + user.username + ' !', 'ok');
+      const target = $router.consumeRedirect();
+      $router.go(user.role === 'admin' && target === 'index' ? 'admin' : target);
+    } catch (e) {
+      error.textContent = e.message;
+      form.password.value = '';
+      form.password.focus();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Se connecter';
+    }
+  };
+</script>

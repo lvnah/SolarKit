@@ -1,0 +1,5 @@
+# SolarKit — protection des fichiers internes derrière Apache.
+# (Le serveur PHP intégré utilise router.php, voir init.sh.)
+<FilesMatch "\.(db|db-wal|db-shm|sqlite|sqlite3|json|log)$|\.bak">
+  Require all denied
+</FilesMatch>

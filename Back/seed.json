@@ -1,0 +1,17 @@
+{
+  "notes": [
+    { "title": "Découvrir SolarKit", "content": "Ouvrir Front/Index/view.html : la page est un simple fragment HTML, aucun build.", "category": "Idée", "priority": 1, "done": 1 },
+    { "title": "Ajouter une table", "content": "Déclarer la table dans Back/schema.json puis recharger : api.php migre data.db automatiquement.", "category": "Tâche", "priority": 1, "done": 0 },
+    { "title": "Changer le mot de passe admin", "content": "Écran Administration > Mon mot de passe.", "category": "Rappel", "priority": 2, "done": 0 },
+    { "title": "Explorer la base", "content": "Back/visualdata.php liste toutes les tables, y compris _users.", "category": "Idée", "priority": 2, "done": 0 },
+    { "title": "Ancienne maquette", "content": "Conservée pour référence.", "category": "Archive", "priority": 3, "done": 1 }
+  ],
+  "contacts": [
+    { "name": "Camille Rousseau", "email": "camille@exemple.fr", "phone": "01 23 45 67 89", "company": "Atelier Solaire", "website": "https://exemple.fr", "notes": "Contact principal du projet pilote." },
+    { "name": "Yacine Benali", "email": "y.benali@exemple.fr", "phone": "01 98 76 54 32", "company": "Benali & Fils", "notes": "Préfère être appelé le matin." },
+    { "name": "Léa Marchand", "email": "lea.marchand@exemple.fr", "company": "Studio Nord", "website": "https://studio-nord.exemple.fr", "notes": "Devis envoyé, en attente de retour." }
+  ],
+  "_users": [
+    { "username": "demo", "password": "demo", "role": "user" }
+  ]
+}

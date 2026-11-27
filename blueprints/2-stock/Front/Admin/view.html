@@ -1,0 +1,188 @@
+<!-- SolarKit · fragment SPA — injecté dans #app par $router.go('admin') -->
+<div class="space-y-8">
+
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold">Administration du stock</h1>
+      <p class="text-sm text-slate-500">Connecté en tant que <span class="font-semibold text-slate-700" id="who"></span>.</p>
+    </div>
+    <a href="Back/visualdata.php" target="_blank" rel="noopener" class="sk-btn-ghost">
+      Explorateur de base de données ↗
+    </a>
+  </div>
+
+  <div id="stats" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
+
+  <!-- Réapprovisionnement : saisie d'une entrée en une ligne -->
+  <section class="sk-card space-y-4">
+    <div>
+      <h2 class="text-lg font-bold">Réapprovisionner</h2>
+      <p class="text-sm text-slate-500">Met à jour le stock du produit et ajoute le mouvement au journal.</p>
+    </div>
+    <form id="restock" class="grid gap-3 sm:grid-cols-[2fr_1fr_2fr_auto]">
+      <select id="r-product" class="sk-input" required></select>
+      <input id="r-qty" type="number" min="1" value="10" class="sk-input" required>
+      <input id="r-reason" class="sk-input" placeholder="Motif (bon de livraison…)">
+      <button type="submit" class="sk-btn">Enregistrer l'entrée</button>
+    </form>
+    <p id="r-msg" class="text-sm font-medium"></p>
+  </section>
+
+  <!-- Top des sorties, calculé depuis le journal -->
+  <section class="sk-card space-y-3">
+    <h2 class="text-lg font-bold">Produits les plus sortis</h2>
+    <div id="top"></div>
+  </section>
+
+  <div id="products"></div>
+  <div id="movements"></div>
+  <div id="users"></div>
+
+  <div class="sk-card max-w-xl space-y-4">
+    <div>
+      <h2 class="text-lg font-bold">Mon mot de passe</h2>
+      <p class="text-sm text-slate-500">Remplacez le mot de passe <code>admin</code> par défaut.</p>
+    </div>
+    <form id="pw-form" class="space-y-3">
+      <div class="space-y-1">
+        <label for="pw-cur" class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Mot de passe actuel</label>
+        <input id="pw-cur" name="current" type="password" class="sk-input" autocomplete="current-password" required>
+      </div>
+      <div class="space-y-1">
+        <label for="pw-new" class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Nouveau mot de passe</label>
+        <input id="pw-new" name="password" type="password" class="sk-input" autocomplete="new-password" minlength="3" required>
+      </div>
+      <div class="flex items-center gap-3">
+        <button type="submit" class="sk-btn">Mettre à jour</button>
+        <span id="pw-msg" class="text-sm font-medium"></span>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  const root = $page.root;
+  root.querySelector('#who').textContent = $auth.user.username + ' (' + $auth.user.role + ')';
+
+  const productsCrud = $ui.crud('#products', 'products', {
+    title: 'Produits',
+    columns: ['sku', 'name', 'category', 'stock', 'threshold', 'price', 'active'],
+    rowClass: (r) => (Number(r.stock) <= Number(r.threshold) ? 'bg-rose-50/70' : ''),
+    onChange: () => refreshDashboard()
+  });
+
+  const movementsCrud = $ui.crud('#movements', 'movements', {
+    title: 'Mouvements',
+    columns: ['product_id', 'kind', 'quantity', 'reason', 'moved_at'],
+    onChange: () => refreshTop()
+  });
+
+  $ui.crud('#users', '_users', { title: 'Comptes utilisateurs', columns: ['username', 'role'] });
+
+  let products = [];
+  let movements = [];
+
+  async function refreshDashboard() {
+    products = await $db.list('products', { order: 'name asc', limit: 500 });
+    const active = products.filter((p) => Number(p.active));
+    const alerts = active.filter((p) => Number(p.stock) <= Number(p.threshold));
+    const value = active.reduce((s, p) => s + Number(p.stock || 0) * Number(p.price || 0), 0);
+    const card = (label, value, tone) =>
+      '<div class="sk-card"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">' + label + '</p>' +
+      '<p class="mt-1 text-3xl font-black ' + (tone || 'text-slate-900') + '">' + value + '</p></div>';
+
+    root.querySelector('#stats').innerHTML =
+      card('Références', products.length) +
+      card('Actives', active.length) +
+      card('Valeur du stock', value.toFixed(2) + ' €') +
+      card('Alertes', alerts.length, alerts.length ? 'text-rose-600' : 'text-emerald-600');
+
+    const select = root.querySelector('#r-product');
+    const current = select.value;
+    select.innerHTML = '<option value="">Choisir un produit…</option>' +
+      products.map((p) => '<option value="' + p.id + '">' + $ui.esc(p.sku + ' — ' + p.name) +
+        ' (stock ' + Number(p.stock) + ')</option>').join('');
+    select.value = current || '';
+  }
+
+  async function refreshTop() {
+    movements = await $db.list('movements', { order: 'id desc', limit: 500 });
+    const totals = {};
+    movements.filter((m) => m.kind === 'Sortie').forEach((m) => {
+      totals[m.product_id] = (totals[m.product_id] || 0) + Math.abs(Number(m.quantity || 0));
+    });
+    const top = Object.keys(totals)
+      .map((id) => ({ id: Number(id), qty: totals[id] }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
+
+    if (!top.length) {
+      root.querySelector('#top').innerHTML = '<p class="text-sm text-slate-400">Aucune sortie enregistrée.</p>';
+      return;
+    }
+    const max = top[0].qty;
+    root.querySelector('#top').innerHTML = top.map((t) => {
+      const p = products.filter((x) => x.id === t.id)[0];
+      const label = p ? p.sku + ' — ' + p.name : 'Produit #' + t.id;
+      return '<div class="mb-2">' +
+        '<div class="flex justify-between text-xs text-slate-600"><span>' + $ui.esc(label) + '</span>' +
+        '<span class="font-bold">' + t.qty + '</span></div>' +
+        '<div class="mt-1 h-2 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-solar-500" style="width:' +
+        Math.round((t.qty / max) * 100) + '%"></div></div></div>';
+    }).join('');
+  }
+
+  /* Réapprovisionnement */
+  const restock = root.querySelector('#restock');
+  const rMsg = root.querySelector('#r-msg');
+  restock.onsubmit = async (ev) => {
+    ev.preventDefault();
+    rMsg.textContent = '';
+    const id = Number(root.querySelector('#r-product').value);
+    const qty = Number(root.querySelector('#r-qty').value);
+    const reason = root.querySelector('#r-reason').value.trim();
+    const product = products.filter((p) => p.id === id)[0];
+    if (!product || qty < 1) {
+      rMsg.className = 'text-sm font-medium text-rose-600';
+      rMsg.textContent = 'Sélectionnez un produit et une quantité valide.';
+      return;
+    }
+    try {
+      await $db.update('products', id, { stock: Number(product.stock) + qty });
+      await $db.create('movements', {
+        product_id: id,
+        kind: 'Entrée',
+        quantity: qty,
+        reason: reason || 'Réapprovisionnement',
+        moved_at: new Date().toISOString().slice(0, 10)
+      });
+      rMsg.className = 'text-sm font-medium text-emerald-600';
+      rMsg.textContent = product.sku + ' : +' + qty + ' (nouveau stock ' + (Number(product.stock) + qty) + ').';
+      root.querySelector('#r-reason').value = '';
+      await productsCrud.refresh();
+      await movementsCrud.refresh();
+    } catch (e) {
+      rMsg.className = 'text-sm font-medium text-rose-600';
+      rMsg.textContent = e.message;
+    }
+  };
+
+  /* Mot de passe */
+  const pwForm = root.querySelector('#pw-form');
+  const pwMsg = root.querySelector('#pw-msg');
+  pwForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    try {
+      await $auth.changePassword(pwForm.current.value, pwForm.password.value);
+      pwForm.reset();
+      pwMsg.className = 'text-sm font-medium text-emerald-600';
+      pwMsg.textContent = 'Mot de passe mis à jour.';
+    } catch (e) {
+      pwMsg.className = 'text-sm font-medium text-rose-600';
+      pwMsg.textContent = e.message;
+    }
+  };
+
+  refreshDashboard().then(refreshTop).catch((e) => $ui.toast(e.message, 'error'));
+</script>

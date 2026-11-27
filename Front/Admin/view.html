@@ -1,0 +1,92 @@
+<!-- SolarKit · fragment SPA — injecté dans #app par $router.go('admin') -->
+<div class="space-y-8">
+
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold">Administration</h1>
+      <p class="text-sm text-slate-500">
+        Connecté en tant que <span class="font-semibold text-slate-700" id="who"></span>.
+      </p>
+    </div>
+    <a href="Back/visualdata.php" target="_blank" rel="noopener" class="sk-btn-ghost">
+      Explorateur de base de données ↗
+    </a>
+  </div>
+
+  <!-- Compteurs par table, lus depuis le schéma -->
+  <div id="stats" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
+
+  <!-- Comptes utilisateurs : CRUD sur la table système _users -->
+  <div id="users"></div>
+
+  <!-- Changement de mot de passe du compte courant -->
+  <div class="sk-card max-w-xl space-y-4">
+    <div>
+      <h2 class="text-lg font-bold">Mon mot de passe</h2>
+      <p class="text-sm text-slate-500">Remplacez le mot de passe <code>admin</code> par défaut.</p>
+    </div>
+    <form id="pw-form" class="space-y-3">
+      <div class="space-y-1">
+        <label for="pw-cur" class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Mot de passe actuel</label>
+        <input id="pw-cur" name="current" type="password" class="sk-input" autocomplete="current-password" required>
+      </div>
+      <div class="space-y-1">
+        <label for="pw-new" class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Nouveau mot de passe</label>
+        <input id="pw-new" name="password" type="password" class="sk-input" autocomplete="new-password" minlength="3" required>
+      </div>
+      <div class="flex items-center gap-3">
+        <button type="submit" class="sk-btn">Mettre à jour</button>
+        <span id="pw-msg" class="text-sm font-medium"></span>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  const root = $page.root;
+  root.querySelector('#who').textContent = $auth.user.username + ' (' + $auth.user.role + ')';
+
+  /* Compteurs : une carte par table du schéma */
+  (async () => {
+    const tables = $db.schema().tables;
+    const names = Object.keys(tables);
+    const cards = await Promise.all(names.map(async (name) => {
+      let total = '—';
+      try { total = await $db.count(name); } catch (e) { /* table non lisible */ }
+      const t = tables[name];
+      return '<div class="sk-card">' +
+        '<p class="text-xs font-semibold uppercase tracking-wide text-slate-400">' + $ui.esc(t.label) + '</p>' +
+        '<p class="mt-1 text-3xl font-black text-slate-900">' + total + '</p>' +
+        '<p class="mt-1 text-xs text-slate-400">table <code>' + $ui.esc(name) + '</code></p>' +
+        '</div>';
+    }));
+    root.querySelector('#stats').innerHTML = cards.join('');
+  })();
+
+  /* CRUD des comptes */
+  $ui.crud('#users', '_users', {
+    title: 'Comptes utilisateurs',
+    columns: ['username', 'role'],
+    empty: 'Aucun compte (impossible en principe).'
+  });
+
+  /* Mot de passe */
+  const pwForm = root.querySelector('#pw-form');
+  const pwMsg = root.querySelector('#pw-msg');
+  pwForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    pwMsg.textContent = '';
+    pwMsg.className = 'text-sm font-medium';
+    try {
+      await $auth.changePassword(pwForm.current.value, pwForm.password.value);
+      pwForm.reset();
+      pwMsg.textContent = 'Mot de passe mis à jour.';
+      pwMsg.className = 'text-sm font-medium text-emerald-600';
+      $ui.toast('Mot de passe mis à jour.', 'ok');
+    } catch (e) {
+      pwMsg.textContent = e.message;
+      pwMsg.className = 'text-sm font-medium text-rose-600';
+    }
+  };
+</script>
